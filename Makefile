@@ -7,6 +7,13 @@ vpath %.S $(SRC_PATH)
 vpath %.rc $(SRC_PATH)
 vpath %.pc.in $(SRC_PATH)
 
+# wasi sdk toolchain (WIP)
+#WASI_SDK_SYSROOT=$(WASI_SDK_ROOT)/share/wasi-sysroot
+#CLANG_FLAGS=--target=wasm32 --no-standard-libraries -Wl,--export-all -Wl,--no-entry
+#CC=$(WASI_SDK_ROOT)/bin/clang++ --sysroot=$(WASI_SDK_SYSROOT) $(CLANG_FLAGS)
+#CXX=$(CC)
+#AR=$(WASI_SDK_ROOT)/bin/ar --sysroot=$(WASI_SDK_SYSROOT)
+
 OS=$(shell uname | tr A-Z a-z | tr -d \\-0-9. | sed -E 's/^(net|open|free)bsd/bsd/')
 ARCH=$(shell uname -m)
 LIBPREFIX=lib
@@ -34,7 +41,8 @@ GTEST_VER=release-1.8.1
 CCASFLAGS=$(CFLAGS)
 STATIC_LDFLAGS=-lstdc++
 STRIP ?= strip
-USE_STACK_PROTECTOR = Yes
+USE_STACK_PROTECTOR = No
+ENABLE64BIT=No
 
 SHAREDLIB_MAJORVERSION=6
 FULL_VERSION := 2.1.0
@@ -55,7 +63,7 @@ endif
 ifeq ($(BUILDTYPE), Release)
 CFLAGS += $(CFLAGS_OPT)
 CFLAGS += -DNDEBUG
-USE_ASM = Yes
+USE_ASM = No
 ifeq ($(DEBUGSYMBOLS), True)
 CFLAGS += -g
 CXXFLAGS += -g
