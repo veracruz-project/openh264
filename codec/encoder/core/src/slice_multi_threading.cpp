@@ -282,7 +282,7 @@ int32_t RequestMtResource (sWelsEncCtx** ppCtx, SWelsSvcCodingParam* pCodingPara
   // Dummy event namespace, the windows events don't actually use this
   WelsSnprintf (pSmt->eventNamespace, sizeof (pSmt->eventNamespace), "%p", (void*) *ppCtx);
 #else
-  WelsSnprintf (pSmt->eventNamespace, sizeof (pSmt->eventNamespace), "%p%x", (void*) *ppCtx, getpid());
+  WelsSnprintf (pSmt->eventNamespace, sizeof (pSmt->eventNamespace), "%p", (void*) *ppCtx);
 #endif//!_WIN32
 
 #ifdef MT_DEBUG

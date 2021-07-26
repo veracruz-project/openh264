@@ -49,7 +49,7 @@
 #include <sys/param.h>
 #include <unistd.h>
 #ifndef __Fuchsia__
-#include <sys/sysctl.h>
+//#include <sys/sysctl.h>
 #endif
 #ifdef __APPLE__
 #define HW_NCPU_NAME "hw.logicalcpu"
@@ -152,10 +152,12 @@ static void getTimespecFromTimeout (struct timespec* ts, int32_t timeout) {
   ts->tv_nsec %= 1000000000;
 }
 int EventCreate (SWelsDecEvent* e, int manualReset, int initialState) {
+#ifdef ENABLE_THREADS
   if (pthread_mutex_init (& (e->m), NULL))
     return 1;
   if (pthread_cond_init (& (e->c), NULL))
     return 2;
+#endif
 
   e->isSignaled = initialState;
   e->manualReset = manualReset;
@@ -164,19 +166,24 @@ int EventCreate (SWelsDecEvent* e, int manualReset, int initialState) {
 }
 
 void EventReset (SWelsDecEvent* e) {
+#ifdef ENABLE_THREADS
   pthread_mutex_lock (& (e->m));
   e->isSignaled = 0;
   pthread_mutex_unlock (& (e->m));
+#endif
 }
 
 void EventPost (SWelsDecEvent* e) {
+#ifdef ENABLE_THREADS
   pthread_mutex_lock (& (e->m));
   pthread_cond_broadcast (& (e->c));
   e->isSignaled = 1;
   pthread_mutex_unlock (& (e->m));
+#endif
 }
 
 int EventWait (SWelsDecEvent* e, int32_t timeout) {
+#ifdef ENABLE_THREADS
   pthread_mutex_lock (& (e->m));
   int signaled = e->isSignaled;
   if (timeout == 0) {
@@ -209,18 +216,25 @@ int EventWait (SWelsDecEvent* e, int32_t timeout) {
     return WELS_DEC_THREAD_WAIT_SIGNALED;
   else
     return WELS_DEC_THREAD_WAIT_TIMEDOUT;
+#else
+  return 0;
+#endif
 }
 
 void EventDestroy (SWelsDecEvent* e) {
+#ifdef ENABLE_THREADS
   pthread_mutex_destroy (& (e->m));
   pthread_cond_destroy (& (e->c));
+#endif
 }
 
 int SemCreate (SWelsDecSemphore* s, long value, long max) {
   s->v = value;
   s->max = max;
+#ifdef ENABLE_THREADS
   if (pthread_mutex_init (& (s->m), NULL))
     return 1;
+#endif
   const char* event_name = "";
   if (WelsEventOpen (& (s->e), event_name)) {
     return 2;
@@ -240,8 +254,10 @@ int SemWait (SWelsDecSemphore* s, int32_t timeout) {
 #if defined(__APPLE__)
         rc = pthread_cond_wait (& (s->e), & (s->m));
 #else
+#ifdef ENABLE_SEMAPHORES
         rc = sem_wait (s->e);
         if (rc != 0) rc = errno;
+#endif
 #endif
       } else {
         struct timespec ts;
@@ -249,8 +265,10 @@ int SemWait (SWelsDecSemphore* s, int32_t timeout) {
 #if defined(__APPLE__)
         rc = pthread_cond_timedwait (& (s->e), & (s->m), &ts);
 #else
+#ifdef ENABLE_SEMAPHORES
         rc = sem_timedwait (s->e, &ts);
         if (rc != 0) rc = errno;
+#endif
 #endif
         if (rc != EINTR) {
           // if timed out we return to the caller
@@ -294,7 +312,9 @@ void SemRelease (SWelsDecSemphore* s, long* o_pPrevCount) {
   prevcount = s->v;
   if (s->v < s->max)
     s->v += 1;
+#ifdef ENABLE_SEMAPHORES
   sem_post (s->e);
+#endif
 #endif
   if (o_pPrevCount != NULL) {
     *o_pPrevCount = prevcount;
@@ -302,7 +322,9 @@ void SemRelease (SWelsDecSemphore* s, long* o_pPrevCount) {
 }
 
 void SemDestroy (SWelsDecSemphore* s) {
+#ifdef ENABLE_THREADS
   pthread_mutex_destroy (& (s->m));
+#endif
   const char* event_name = "";
   WelsEventClose (& (s->e), event_name);
 }

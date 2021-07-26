@@ -49,7 +49,7 @@
 #include <sys/param.h>
 #include <unistd.h>
 #ifndef __Fuchsia__
-#include <sys/sysctl.h>
+//#include <sys/sysctl.h>
 #endif
 #ifdef __APPLE__
 #define HW_NCPU_NAME "hw.logicalcpu"
@@ -98,19 +98,35 @@ WELS_THREAD_ERROR_CODE    WelsMutexDestroy (WELS_MUTEX* mutex) {
 #else /* _WIN32 */
 
 WELS_THREAD_ERROR_CODE    WelsMutexInit (WELS_MUTEX*    mutex) {
+#ifdef ENABLE_THREADS
   return pthread_mutex_init (mutex, NULL);
+#else
+  return 0;
+#endif
 }
 
 WELS_THREAD_ERROR_CODE    WelsMutexLock (WELS_MUTEX*    mutex) {
+#ifdef ENABLE_THREADS
   return pthread_mutex_lock (mutex);
+#else
+  return 0;
+#endif
 }
 
 WELS_THREAD_ERROR_CODE    WelsMutexUnlock (WELS_MUTEX* mutex) {
+#ifdef ENABLE_THREADS
   return pthread_mutex_unlock (mutex);
+#else
+  return 0;
+#endif
 }
 
 WELS_THREAD_ERROR_CODE    WelsMutexDestroy (WELS_MUTEX* mutex) {
+#ifdef ENABLE_THREADS
   return pthread_mutex_destroy (mutex);
+#else
+  return 0;
+#endif
 }
 
 #endif /* !_WIN32 */
@@ -228,21 +244,26 @@ WELS_THREAD_ERROR_CODE    WelsThreadCreate (WELS_THREAD_HANDLE* thread,  LPWELS_
     void* arg, WELS_THREAD_ATTR attr) {
   WELS_THREAD_ERROR_CODE err = 0;
 
+#ifdef ENABLE_THREADS
   pthread_attr_t at;
   err = pthread_attr_init (&at);
   if (err)
     return err;
+#endif
 #if !defined(__ANDROID__) && !defined(__Fuchsia__)
+/*
   err = pthread_attr_setscope (&at, PTHREAD_SCOPE_SYSTEM);
   if (err)
     return err;
   err = pthread_attr_setschedpolicy (&at, SCHED_FIFO);
   if (err)
-    return err;
+    return err;*/
 #endif
+#ifdef ENABLE_THREADS
   err = pthread_create (thread, &at, routine, arg);
 
   pthread_attr_destroy (&at);
+#endif
 
   return err;
 }
@@ -259,11 +280,19 @@ WELS_THREAD_ERROR_CODE WelsThreadSetName (const char* thread_name) {
 }
 
 WELS_THREAD_ERROR_CODE    WelsThreadJoin (WELS_THREAD_HANDLE  thread) {
+#ifdef ENABLE_THREADS
   return pthread_join (thread, NULL);
+#else
+  return 0;
+#endif
 }
 
 WELS_THREAD_HANDLE        WelsThreadSelf() {
+#ifdef ENABLE_THREADS
   return pthread_self();
+#else
+  return 0;
+#endif
 }
 
 // unnamed semaphores aren't supported on OS X
@@ -278,11 +307,14 @@ WELS_THREAD_ERROR_CODE    WelsEventOpen (WELS_EVENT* p_event, const char* event_
     *p_event = NULL;
     return WELS_THREAD_ERROR_GENERAL;
   }
-  WELS_THREAD_ERROR_CODE err = sem_init (event, 0, 0);
+  WELS_THREAD_ERROR_CODE err = 0;
+#ifdef ENABLE_SEMAPHORES
+  err = sem_init (event, 0, 0);
   if (!err) {
     *p_event = event;
     return err;
   }
+#endif
   free (event);
   *p_event = NULL;
   return err;
@@ -294,7 +326,10 @@ WELS_THREAD_ERROR_CODE    WelsEventClose (WELS_EVENT* event, const char* event_n
   WELS_THREAD_ERROR_CODE err = pthread_cond_destroy (event);
   return err;
 #else
-  WELS_THREAD_ERROR_CODE err = sem_destroy (*event); // match with sem_init
+  WELS_THREAD_ERROR_CODE err = 0;
+#ifdef ENABLE_SEMAPHORES
+  err = sem_destroy (*event); // match with sem_init
+#endif
   free (*event);
   *event = NULL;
   return err;
@@ -323,8 +358,10 @@ WELS_THREAD_ERROR_CODE   WelsEventSignal (WELS_EVENT* event, WELS_MUTEX *pMutex,
 //  int32_t val = 0;
 //  sem_getvalue(event, &val);
 //  fprintf( stderr, "before signal it, val= %d..\n",val );
+#ifdef ENABLE_SEMAPHORES
   if (event != NULL)
     err = sem_post (*event);
+#endif
 //  sem_getvalue(event, &val);
     //fprintf( stderr, "signal it, event=%x iCondition= %d..\n",event, *iCondition );
     }
@@ -344,7 +381,11 @@ WELS_THREAD_ERROR_CODE WelsEventWait (WELS_EVENT* event, WELS_MUTEX* pMutex, int
   WelsMutexUnlock(pMutex);
   return err;
 #else
+#ifdef ENABLE_SEMAPHORES
   return sem_wait (*event); // blocking until signaled
+#else
+  return 0;
+#endif
 #endif
 }
 
@@ -354,7 +395,11 @@ WELS_THREAD_ERROR_CODE    WelsEventWaitWithTimeOut (WELS_EVENT* event, uint32_t 
 #if defined(__APPLE__)
     return pthread_cond_wait (event, pMutex);
 #else
+#ifdef ENABLE_SEMAPHORES
     return sem_wait (*event);
+#else
+    return 0;
+#endif
 #endif
   } else {
     struct timespec ts;
@@ -369,7 +414,11 @@ WELS_THREAD_ERROR_CODE    WelsEventWaitWithTimeOut (WELS_EVENT* event, uint32_t 
 #if defined(__APPLE__)
     return pthread_cond_timedwait (event, pMutex, &ts);
 #else
+#ifdef ENABLE_SEMAPHORES
     return sem_timedwait (*event, &ts);
+#else
+    return 0;
+#endif
 #endif
   }
 
@@ -434,9 +483,11 @@ WELS_THREAD_ERROR_CODE    WelsMultipleEventsWaitSingleBlocking (uint32_t nCount,
     // event should have a similar count (events in windows can't keep
     // track of the actual count, but the master event isn't needed there
     // since it uses WaitForMultipleObjects).
+#ifdef ENABLE_SEMAPHORES
     int32_t err = sem_wait (*master_event);
     if (err != WELS_THREAD_ERROR_OK)
       return err;
+#endif
     uiAccessTime = 0; // no blocking, just quickly loop through all to find the one that was signalled
   }
 
@@ -478,6 +529,7 @@ WELS_THREAD_ERROR_CODE    WelsMultipleEventsWaitSingleBlocking (uint32_t nCount,
 }
 
 WELS_THREAD_ERROR_CODE    WelsQueryLogicalProcessInfo (WelsLogicalProcessInfo* pInfo) {
+#ifdef ENABLE_THREADS
 #ifdef ANDROID_NDK
   pInfo->ProcessorCount = android_getCpuCount();
   return WELS_THREAD_ERROR_OK;
@@ -530,6 +582,11 @@ WELS_THREAD_ERROR_CODE    WelsQueryLogicalProcessInfo (WelsLogicalProcessInfo* p
   return WELS_THREAD_ERROR_OK;
 
 #endif//__linux__
+#else
+  pInfo->ProcessorCount = 1;
+  return WELS_THREAD_ERROR_OK;
+
+#endif//ENABLE_THREADS
 }
 
 #endif

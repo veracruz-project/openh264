@@ -78,7 +78,9 @@ typedef    HANDLE                    WELS_EVENT;
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#ifdef ENABLE_THREADS
 #include <pthread.h>
+#endif
 #include <semaphore.h>
 #include <signal.h>
 #include <errno.h>
@@ -88,10 +90,15 @@ typedef    HANDLE                    WELS_EVENT;
 #include <sys/stat.h>
 #include <fcntl.h>
 
+typedef  unsigned long int pthread_t;
 typedef   pthread_t    WELS_THREAD_HANDLE;
 typedef  void* (*LPWELS_THREAD_ROUTINE) (void*);
 
+#ifdef ENABLE_THREADS
 typedef   pthread_mutex_t           WELS_MUTEX;
+#else
+typedef   unsigned long int           WELS_MUTEX;
+#endif
 
 #ifdef __APPLE__
 typedef   pthread_cond_t            WELS_EVENT;

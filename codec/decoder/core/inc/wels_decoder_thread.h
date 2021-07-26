@@ -74,7 +74,9 @@ typedef struct tagWelsDecThread {
 
 #else // NON-WINDOWS
 
+#ifdef ENABLE_THREADS
 typedef   pthread_mutexattr_t       WELS_MUTEX_ATTR;
+#endif
 
 typedef struct tagWelsDecSemphore {
   long max;
@@ -86,7 +88,9 @@ typedef struct tagWelsDecSemphore {
 typedef struct tagWelsDecEvent {
   int manualReset;
   int isSignaled;
+#ifdef ENABLE_THREADS
   pthread_cond_t c;
+#endif
   WELS_MUTEX m;
 } SWelsDecEvent;
 
