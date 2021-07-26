@@ -7,12 +7,12 @@ vpath %.S $(SRC_PATH)
 vpath %.rc $(SRC_PATH)
 vpath %.pc.in $(SRC_PATH)
 
-# wasi sdk toolchain (WIP)
-#WASI_SDK_SYSROOT=$(WASI_SDK_ROOT)/share/wasi-sysroot
-#CLANG_FLAGS=--target=wasm32 --no-standard-libraries -Wl,--export-all -Wl,--no-entry
-#CC=$(WASI_SDK_ROOT)/bin/clang++ --sysroot=$(WASI_SDK_SYSROOT) $(CLANG_FLAGS)
-#CXX=$(CC)
-#AR=$(WASI_SDK_ROOT)/bin/ar --sysroot=$(WASI_SDK_SYSROOT)
+# wasi sdk toolchain
+WASI_SDK_SYSROOT=$(WASI_SDK_ROOT)/share/wasi-sysroot
+CLANG_FLAGS=--target=wasm32-wasi -D_WASI_EMULATED_SIGNAL
+CC=$(WASI_SDK_ROOT)/bin/clang++ --sysroot=$(WASI_SDK_SYSROOT) $(CLANG_FLAGS)
+CXX=$(CC)
+AR=$(WASI_SDK_ROOT)/bin/ar
 
 OS=$(shell uname | tr A-Z a-z | tr -d \\-0-9. | sed -E 's/^(net|open|free)bsd/bsd/')
 ARCH=$(shell uname -m)
