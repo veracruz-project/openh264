@@ -269,11 +269,13 @@ WELS_THREAD_ERROR_CODE    WelsThreadCreate (WELS_THREAD_HANDLE* thread,  LPWELS_
 }
 
 WELS_THREAD_ERROR_CODE WelsThreadSetName (const char* thread_name) {
+#ifdef ENABLE_THREADS
 #ifdef APPLE_IOS
   pthread_setname_np (thread_name);
 #endif
 #if defined(__ANDROID__) && __ANDROID_API__ >= 9
   pthread_setname_np (pthread_self(), thread_name);
+#endif
 #endif
   // do nothing
   return WELS_THREAD_ERROR_OK;
@@ -426,6 +428,7 @@ WELS_THREAD_ERROR_CODE    WelsEventWaitWithTimeOut (WELS_EVENT* event, uint32_t 
 
 WELS_THREAD_ERROR_CODE    WelsMultipleEventsWaitSingleBlocking (uint32_t nCount,
     WELS_EVENT* event_list, WELS_EVENT* master_event, WELS_MUTEX* pMutex) {
+#ifdef ENABLE_SEMAPHORES
   uint32_t nIdx = 0;
   uint32_t uiAccessTime = 2; // 2 us once
 
@@ -483,11 +486,9 @@ WELS_THREAD_ERROR_CODE    WelsMultipleEventsWaitSingleBlocking (uint32_t nCount,
     // event should have a similar count (events in windows can't keep
     // track of the actual count, but the master event isn't needed there
     // since it uses WaitForMultipleObjects).
-#ifdef ENABLE_SEMAPHORES
     int32_t err = sem_wait (*master_event);
     if (err != WELS_THREAD_ERROR_OK)
       return err;
-#endif
     uiAccessTime = 0; // no blocking, just quickly loop through all to find the one that was signalled
   }
 
@@ -524,6 +525,7 @@ WELS_THREAD_ERROR_CODE    WelsMultipleEventsWaitSingleBlocking (uint32_t nCount,
     }
   }
 
+#endif
 #endif
   return WELS_THREAD_ERROR_WAIT_FAILED;
 }
