@@ -10,7 +10,7 @@ vpath %.pc.in $(SRC_PATH)
 # wasi sdk toolchain
 WASI_SDK_SYSROOT=$(WASI_SDK_ROOT)/share/wasi-sysroot
 CLANG_FLAGS=--target=wasm32-wasi -D_WASI_EMULATED_SIGNAL
-CC=$(WASI_SDK_ROOT)/bin/clang++ --sysroot=$(WASI_SDK_SYSROOT) $(CLANG_FLAGS)
+CC=$(WASI_SDK_ROOT)/bin/clang --sysroot=$(WASI_SDK_SYSROOT) $(CLANG_FLAGS)
 CXX=$(CC)
 AR=$(WASI_SDK_ROOT)/bin/ar
 
