@@ -11,7 +11,7 @@ vpath %.pc.in $(SRC_PATH)
 WASI_SDK_SYSROOT=$(WASI_SDK_ROOT)/share/wasi-sysroot
 CLANG_FLAGS=--target=wasm32-wasi -D_WASI_EMULATED_SIGNAL
 CC=$(WASI_SDK_ROOT)/bin/clang --sysroot=$(WASI_SDK_SYSROOT) $(CLANG_FLAGS)
-CXX=$(CC)
+CXX=$(WASI_SDK_ROOT)/bin/clang++ --sysroot=$(WASI_SDK_SYSROOT) $(CLANG_FLAGS)
 AR=$(WASI_SDK_ROOT)/bin/ar
 
 OS=$(shell uname | tr A-Z a-z | tr -d \\-0-9. | sed -E 's/^(net|open|free)bsd/bsd/')
